@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+        .modal.hidden .modal-content {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="min-h-screen">
+        <header class="bg-white shadow-md rounded-b-xl">
+            <div class="container mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between">
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 sm:mb-0">Job Board</h1>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <input
+                            id="search-input"
+                            type="text"
+                            placeholder="Search jobs..."
+                            class="w-full sm:w-64 pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <button
+                        id="add-job-btn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center space-x-2"
+                    >
+                        <svg class="h-5 w-5 stroke-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 4.5V19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4.5 12H19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Add Job</span>
+                    </button>
+                </div>
+            </div>
+            <div id="user-info" class="container mx-auto px-4 py-2 text-sm text-gray-500">
+                User ID: Loading...
+            </div>
+        </header>
+
+        <!-- Container for User's Pending Jobs -->
+        <div id="user-pending-container"></div>
+
+        <!-- Main Content (Approved Jobs) -->
+        <main class="container mx-auto px-4 py-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Approved Jobs</h2>
+            <div id="approved-job-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Approved jobs will be rendered here -->
+            </div>
+        </main>
+
+        <!-- Container for Admin Moderation Queue -->
+        <div id="admin-moderation-container"></div>
+    </div>
+    
+    <!-- Add/Edit Modal -->
+    <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center p-4 modal hidden">
+        <div class="w-full max-w-md bg-white p-6 rounded-2xl shadow-xl modal-content">
+            <h3 id="modal-title" class="text-lg font-bold leading-6 text-gray-900">Add New Job</h3>
+            <div class="mt-4">
+                <form id="job-form" class="space-y-4">
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700">Job Title</label>
+                        <input type="text" id="title" name="title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" required>
+                    </div>
+                    <div>
+                        <label for="company" class="block text-sm font-medium text-gray-700">Company</label>
+                        <input type="text" id="company" name="company" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" required>
+                    </div>
+                    <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
+                        <input type="text" id="location" name="location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" required>
+                    </div>
+                    <div>
+                        <label for="qualification" class="block text-sm font-medium text-gray-700">Qualification</label>
+                        <input type="text" id="qualification" name="qualification" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="applyLink" class="block text-sm font-medium text-gray-700">Apply Link</label>
+                        <input type="url" id="applyLink" name="applyLink" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea id="description" name="description" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" required></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" id="cancel-btn" class="inline-flex justify-center rounded-md border border-transparent bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 focus:outline-none">Cancel</button>
+                        <button type="submit" id="save-btn" class="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none">Add Job</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal-container" class="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center p-4 modal hidden">
+        <div class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl modal-content">
+            <h3 class="text-lg font-bold leading-6 text-gray-900">Confirm Deletion</h3>
+            <div class="mt-2">
+                <p id="delete-modal-text" class="text-sm text-gray-500"></p>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button type="button" id="cancel-delete-btn" class="inline-flex justify-center rounded-md border border-transparent bg-gray-200 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-300 focus:outline-none">Cancel</button>
+                <button type="button" id="confirm-delete-btn" class="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- The JavaScript logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, query, where, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    
+        // Use environment variables for Firebase configuration.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+    
+        // Use the provided auth token if available, otherwise sign in anonymously.
+        const signIn = async () => {
+          try {
+            if (typeof __initial_auth_token !== 'undefined') {
+              await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+              await signInAnonymously(auth);
+            }
+          } catch (error) {
+            console.error("Firebase authentication error:", error);
+          }
+        };
+    
+        let user = null;
+        let approvedJobs = [];
+        let pendingJobs = [];
+        let userPendingJobs = [];
+        let searchTerm = '';
+        let adminId = null;
+    
+        // Utility functions for icons as SVG strings
+        const EditIcon = () => `
+          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+          </svg>
+        `;
+    
+        const TrashIcon = () => `
+          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        `;
+    
+        const CheckCircleIcon = () => `
+          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-8.66"></path>
+            <path d="M22 4L12 14.01l-3-3"></path>
+          </svg>
+        `;
+    
+        const TimesCircleIcon = () => `
+          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        `;
+        
+        const LinkIcon = () => `
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+        `;
+
+        // DOM element references
+        const userInfoEl = document.getElementById('user-info');
+        const approvedJobListEl = document.getElementById('approved-job-list');
+        const userPendingContainerEl = document.getElementById('user-pending-container');
+        const adminModerationContainerEl = document.getElementById('admin-moderation-container');
+        const modalContainer = document.getElementById('modal-container');
+        const deleteModalContainer = document.getElementById('delete-modal-container');
+        const form = document.getElementById('job-form');
+        const searchInput = document.getElementById('search-input');
+        const addJobBtn = document.getElementById('add-job-btn');
+    
+        let jobToDeleteId = null;
+    
+        // Render functions
+        const renderUserInfo = () => {
+            if (userInfoEl) {
+                userInfoEl.textContent = `User ID: ${user?.uid || 'Loading...'}`;
+            }
+        };
+    
+        const renderApprovedJobs = () => {
+            const filteredJobs = approvedJobs.filter(job =>
+                job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                job.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                job.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                job.qualification?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            if (approvedJobListEl) {
+                approvedJobListEl.innerHTML = filteredJobs.length > 0 ? filteredJobs.map(job => `
+                    <div class="bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 flex flex-col justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold text-blue-700 mb-2">${job.title}</h2>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-1">${job.company}</h3>
+                            <p class="text-gray-500 mb-1">${job.location}</p>
+                            ${job.qualification ? `<p class="text-sm text-gray-400">Qualifications: ${job.qualification}</p>` : ''}
+                            <p class="text-gray-700 my-4 line-clamp-3">${job.description}</p>
+                        </div>
+                        <div class="flex justify-between items-center mt-4">
+                            ${job.applyLink ? `<a href="${job.applyLink}" target="_blank" class="bg-blue-100 text-blue-800 font-semibold py-2 px-4 rounded-full shadow-md hover:bg-blue-200 transition-colors duration-200 flex items-center space-x-2" title="Apply Now">
+                                ${LinkIcon()}
+                                <span>Apply</span>
+                            </a>` : '<span></span>'}
+                            <div class="flex justify-end space-x-3">
+                                ${user && (user.uid === job.userId || user.uid === adminId) ? `
+                                    <button
+                                        class="p-2 text-blue-500 hover:text-blue-700 transition-colors duration-200 edit-btn"
+                                        data-id="${job.id}"
+                                        title="Edit Job"
+                                    >
+                                        ${EditIcon()}
+                                    </button>
+                                    <button
+                                        class="p-2 text-red-500 hover:text-red-700 transition-colors duration-200 delete-btn"
+                                        data-id="${job.id}"
+                                        title="Delete Job"
+                                    >
+                                        ${TrashIcon()}
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : '<p class="text-center text-gray-500 col-span-full">No approved jobs found.</p>';
+            }
+        };
+    
+        const renderUserPendingJobs = () => {
+            if (userPendingContainerEl) {
+                userPendingContainerEl.innerHTML = userPendingJobs.length > 0 ? `
+                    <div class="container mx-auto px-4 mt-8">
+                        <h2 class="text-2xl font-bold text-yellow-700 mb-4">Your Pending Job Posts</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${userPendingJobs.map(job => `
+                                <div class="bg-yellow-50 p-6 rounded-2xl shadow-lg border-2 border-yellow-300 flex flex-col justify-between">
+                                    <div>
+                                        <h2 class="text-xl font-bold text-yellow-800 mb-2">${job.title}</h2>
+                                        <h3 class="text-lg font-semibold text-gray-900 mb-1">${job.company}</h3>
+                                        <p class="text-gray-500 mb-1">${job.location}</p>
+                                        ${job.qualification ? `<p class="text-sm text-gray-400">Qualifications: ${job.qualification}</p>` : ''}
+                                        <p class="text-gray-700 my-4 line-clamp-3">${job.description}</p>
+                                        <span class="inline-block px-3 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">Pending Approval</span>
+                                    </div>
+                                    <div class="flex justify-end space-x-3 mt-4">
+                                        <button
+                                            class="p-2 text-blue-500 hover:text-blue-700 transition-colors duration-200 edit-btn"
+                                            data-id="${job.id}"
+                                            title="Edit Job"
+                                        >
+                                            ${EditIcon()}
+                                        </button>
+                                        <button
+                                            class="p-2 text-red-500 hover:text-red-700 transition-colors duration-200 delete-btn"
+                                            data-id="${job.id}"
+                                            title="Delete Job"
+                                        >
+                                            ${TrashIcon()}
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '';
+            }
+        };
+    
+        const renderAdminModerationQueue = () => {
+            if (adminModerationContainerEl) {
+                adminModerationContainerEl.innerHTML = (user && user.uid === adminId) ? `
+                    <div class="container mx-auto px-4 mt-8 pt-8 border-t-2 border-gray-300">
+                        <h2 class="text-2xl font-bold text-red-700 mb-4">Admin Moderation Queue</h2>
+                        ${pendingJobs.length === 0 ? '<p class="text-center text-gray-500">No new jobs to moderate.</p>' : `
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                ${pendingJobs.map(job => `
+                                    <div class="bg-white p-6 rounded-2xl shadow-lg border-2 border-red-300 flex flex-col justify-between">
+                                        <div>
+                                            <h2 class="text-xl font-bold text-red-800 mb-2">${job.title}</h2>
+                                            <h3 class="text-lg font-semibold text-gray-900 mb-1">${job.company}</h3>
+                                            <p class="text-gray-500 mb-1">${job.location}</p>
+                                            ${job.qualification ? `<p class="text-sm text-gray-400">Qualifications: ${job.qualification}</p>` : ''}
+                                            <p class="text-gray-700 my-4 line-clamp-3">${job.description}</p>
+                                            <span class="inline-block px-3 py-1 text-xs font-semibold text-red-800 bg-red-200 rounded-full">Submitted by: ${job.userId.substring(0, 8)}...</span>
+                                        </div>
+                                        <div class="flex justify-end space-x-3 mt-4">
+                                            <button class="p-2 text-green-500 hover:text-green-700 transition-colors duration-200 approve-btn" data-id="${job.id}" title="Approve Job">
+                                                ${CheckCircleIcon()}
+                                            </button>
+                                            <button class="p-2 text-red-500 hover:text-red-700 transition-colors duration-200 reject-btn" data-id="${job.id}" title="Reject Job">
+                                                ${TimesCircleIcon()}
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
+                ` : '';
+            }
+        };
+
+        // Static CRUD operations
+        const generateId = () => Math.random().toString(36).substring(2, 9);
+
+        const handleAddJob = (job) => {
+            const newJob = { id: generateId(), ...job, userId: user.uid, status: 'pending' };
+            pendingJobs.push(newJob);
+            closeModal();
+            renderApp();
+        };
+
+        const handleUpdateJob = (jobId, updatedJob) => {
+            approvedJobs = approvedJobs.map(job => (job.id === jobId ? { ...job, ...updatedJob } : job));
+            userPendingJobs = userPendingJobs.map(job => (job.id === jobId ? { ...job, ...updatedJob } : job));
+            pendingJobs = pendingJobs.map(job => (job.id === jobId ? { ...job, ...updatedJob } : job));
+            closeModal();
+            renderApp();
+        };
+
+        const handleDeleteJob = (jobId) => {
+            approvedJobs = approvedJobs.filter(job => job.id !== jobId);
+            userPendingJobs = userPendingJobs.filter(job => job.id !== jobId);
+            pendingJobs = pendingJobs.filter(job => job.id !== jobId);
+            closeModal();
+            renderApp();
+        };
+    
+        const handleApproveJob = (jobId) => {
+            const jobIndex = pendingJobs.findIndex(job => job.id === jobId);
+            if (jobIndex > -1) {
+                const jobToApprove = pendingJobs.splice(jobIndex, 1)[0];
+                jobToApprove.status = 'approved';
+                approvedJobs.push(jobToApprove);
+                renderApp();
+            }
+        };
+
+        const handleRejectJob = (jobId) => {
+            pendingJobs = pendingJobs.filter(job => job.id !== jobId);
+            renderApp();
+        };
+
+        // Event listeners and handlers
+        const attachEventListeners = () => {
+            modalContainer = document.getElementById('modal-container');
+            deleteModalContainer = document.getElementById('delete-modal-container');
+            form = document.getElementById('job-form');
+
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    searchTerm = e.target.value;
+                    renderApp();
+                });
+            }
+        
+            const addJobBtn = document.getElementById('add-job-btn');
+            if (addJobBtn) {
+                addJobBtn.addEventListener('click', openAddModal);
+            }
+        
+            const cancelBtn = document.getElementById('cancel-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeModal);
+            }
+        
+            const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+            if (cancelDeleteBtn) {
+                cancelDeleteBtn.addEventListener('click', closeModal);
+            }
+            
+            if (document.getElementById('confirm-delete-btn')) {
+                document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+                    if (jobToDelete) handleDeleteJob(jobToDelete.id);
+                });
+            }
+
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    if (form.dataset.id) {
+                        handleUpdateJob(form.dataset.id, {
+                            title: form.title.value,
+                            company: form.company.value,
+                            location: form.location.value,
+                            qualification: form.qualification.value,
+                            applyLink: form.applyLink.value,
+                            description: form.description.value,
+                        });
+                    } else {
+                        handleAddJob({
+                            title: form.title.value,
+                            company: form.company.value,
+                            location: form.location.value,
+                            qualification: form.qualification.value,
+                            applyLink: form.applyLink.value,
+                            description: form.description.value,
+                        });
+                    }
+                });
+            }
+
+            // Using event delegation for dynamic buttons
+            document.body.addEventListener('click', (e) => {
+                if (e.target.closest('.edit-btn')) {
+                    const jobId = e.target.closest('.edit-btn').dataset.id;
+                    const job = [...approvedJobs, ...userPendingJobs, ...pendingJobs].find(j => j.id === jobId);
+                    if (job) openEditModal(job);
+                }
+                if (e.target.closest('.delete-btn')) {
+                    const jobId = e.target.closest('.delete-btn').dataset.id;
+                    const job = [...approvedJobs, ...userPendingJobs, ...pendingJobs].find(j => j.id === jobId);
+                    if (job) openDeleteConfirmation(job);
+                }
+                if (e.target.closest('.approve-btn')) {
+                    const jobId = e.target.closest('.approve-btn').dataset.id;
+                    handleApproveJob(jobId);
+                }
+                if (e.target.closest('.reject-btn')) {
+                    const jobId = e.target.closest('.reject-btn').dataset.id;
+                    handleRejectJob(jobId);
+                }
+            });
+        };
+    
+        window.onload = () => {
+            // Mock initial state for local testing
+            pendingJobs.push({ id: 'pending-1', title: 'Marketing Manager', company: 'Ad Agency', location: 'London, UK', qualification: 'Bachelor’s degree in Marketing', applyLink: 'https://www.adagency.com/careers', userId: 'mock-user-456' });
+            userPendingJobs.push({ id: 'pending-2', title: 'Web Developer', company: 'Local Dev Co.', location: 'Remote', qualification: 'Experience with JavaScript and Tailwind CSS', applyLink: 'https://www.localdevco.com/jobs', userId: 'mock-user-admin123' });
+            
+            renderApp();
+            attachEventListeners();
+        };
+    </script>
+</body>
+</html>
