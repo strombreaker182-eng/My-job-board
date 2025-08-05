@@ -60,7 +60,7 @@
                 </div>
             </div>
             <div id="user-info" class="container mx-auto px-4 py-2 text-sm text-gray-500">
-                User ID: Loading...
+                User ID: mock-user-admin123
             </div>
         </header>
 
@@ -132,105 +132,49 @@
         </div>
     </div>
 
-    <!-- The JavaScript logic -->
     <script>
-        // This is a bundled version of the Firebase SDKs, which avoids browser import issues.
-        const firebase = {
-          initializeApp: () => { /* no-op */ },
-          auth: {
-            getAuth: () => ({
-              currentUser: { uid: 'mock-user-123' },
-              signInAnonymously: () => Promise.resolve(),
-              signInWithCustomToken: () => Promise.resolve(),
-              onAuthStateChanged: (auth, callback) => {
-                callback({ uid: 'mock-user-123' });
-                return () => {};
-              },
-            }),
-            signInAnonymously: () => Promise.resolve(),
-            signInWithCustomToken: () => Promise.resolve(),
-            onAuthStateChanged: (auth, callback) => {
-                callback({ uid: 'mock-user-123' });
-                return () => {};
-            },
-          },
-          firestore: {
-            getFirestore: () => ({}),
-            collection: () => ({}),
-            addDoc: () => Promise.resolve(),
-            onSnapshot: () => () => {},
-            doc: () => ({}),
-            deleteDoc: () => Promise.resolve(),
-            updateDoc: () => Promise.resolve(),
-            query: () => ({}),
-            where: () => ({}),
-            getDocs: () => Promise.resolve({
-                empty: true,
-                docs: [],
-            }),
-            getDoc: () => Promise.resolve({
-                exists: () => false,
-                data: () => null,
-            }),
-          },
-        };
-        
-        // Use environment variables for Firebase configuration.
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore.getFirestore(app);
-        const auth = firebase.auth.getAuth(app);
-    
-        // Use the provided auth token if available, otherwise sign in anonymously.
-        const signIn = async () => {
-          try {
-            if (typeof __initial_auth_token !== 'undefined') {
-              await firebase.auth.signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-              await firebase.auth.signInAnonymously(auth);
-            }
-          } catch (error) {
-            console.error("Firebase authentication error:", error);
-          }
-        };
-    
-        let user = null;
-        let approvedJobs = [];
+        // Static data to demonstrate the UI and logic locally
+        let approvedJobs = [
+            { id: '1', title: 'Senior Software Engineer', company: 'Tech Solutions Inc.', location: 'New York, NY', description: 'Seeking a senior engineer to lead our backend team. Must have experience with Node.js and cloud services.', applyLink: 'https://www.techsolutions.com/careers', qualification: 'BS in Computer Science or related field', userId: 'mock-user-admin123' },
+            { id: '2', title: 'UI/UX Designer', company: 'Creative Co.', location: 'Remote', description: 'Looking for a creative designer with a strong portfolio in web and mobile applications.', applyLink: 'https://www.creativeco.com/apply', qualification: 'Experience with Figma and Adobe Creative Suite', userId: 'mock-user-456' },
+            { id: '3', title: 'Data Scientist', company: 'Data Insights', location: 'San Francisco, CA', description: 'Experienced data scientist needed to analyze large datasets and build predictive models.', applyLink: 'https://www.datainsights.com/jobs', qualification: 'MS or PhD in a quantitative field', userId: 'mock-user-admin123' },
+        ];
         let pendingJobs = [];
         let userPendingJobs = [];
         let searchTerm = '';
-        let adminId = null;
-    
+        let loading = false;
+        let adminId = 'mock-user-admin123'; // Hardcoded admin ID for local testing
+
+        // Mock user for local testing
+        const user = { uid: 'mock-user-admin123' };
+
         // Utility functions for icons as SVG strings
         const EditIcon = () => `
-          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-          </svg>
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
         `;
     
         const TrashIcon = () => `
-          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 6h18"></path>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          </svg>
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
         `;
     
         const CheckCircleIcon = () => `
-          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-8.66"></path>
-            <path d="M22 4L12 14.01l-3-3"></path>
-          </svg>
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-8.66"></path>
+                <path d="M22 4L12 14.01l-3-3"></path>
+            </svg>
         `;
     
         const TimesCircleIcon = () => `
-          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-          </svg>
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
         `;
         
         const LinkIcon = () => `
@@ -241,26 +185,53 @@
         `;
 
         // DOM element references
-        let userInfoEl = null;
-        let approvedJobListEl = null;
-        let userPendingContainerEl = null;
-        let adminModerationContainerEl = null;
         let modalContainer = null;
         let deleteModalContainer = null;
         let form = null;
-        let searchInput = null;
-        let addJobBtn = null;
-    
-        let jobToDeleteId = null;
-    
-        // Render functions
-        const renderUserInfo = () => {
-            if (userInfoEl) {
-                userInfoEl.textContent = `User ID: ${user?.uid || 'Loading...'}`;
-            }
+        let jobToEdit = null;
+        let jobToDelete = null;
+
+        const openAddModal = () => {
+            modalContainer.classList.remove('hidden');
+            document.getElementById('modal-title').textContent = 'Add New Job';
+            document.getElementById('save-btn').textContent = 'Add Job';
+            form.reset();
+            form.dataset.id = '';
+            jobToEdit = null;
         };
-    
-        const renderApprovedJobs = () => {
+        
+        const openEditModal = (job) => {
+            modalContainer.classList.remove('hidden');
+            document.getElementById('modal-title').textContent = 'Edit Job';
+            document.getElementById('save-btn').textContent = 'Save Changes';
+            form.title.value = job.title;
+            form.company.value = job.company;
+            form.location.value = job.location;
+            form.qualification.value = job.qualification || '';
+            form.applyLink.value = job.applyLink || '';
+            form.description.value = job.description;
+            form.dataset.id = job.id;
+            jobToEdit = job;
+        };
+        
+        const openDeleteConfirmation = (job) => {
+            deleteModalContainer.classList.remove('hidden');
+            document.getElementById('delete-modal-text').innerHTML = `Are you sure you want to delete the job titled <b>${job.title}</b>? This action cannot be undone.`;
+            jobToDelete = job;
+        };
+
+        const closeModal = () => {
+            modalContainer.classList.add('hidden');
+            deleteModalContainer.classList.add('hidden');
+            jobToDelete = null;
+        };
+
+        // Main render function to update the DOM
+        const renderApp = () => {
+            const approvedJobListEl = document.getElementById('approved-job-list');
+            const userPendingContainerEl = document.getElementById('user-pending-container');
+            const adminModerationContainerEl = document.getElementById('admin-moderation-container');
+        
             const filteredJobs = approvedJobs.filter(job =>
                 job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 job.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -268,6 +239,7 @@
                 job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 job.qualification?.toLowerCase().includes(searchTerm.toLowerCase())
             );
+        
             if (approvedJobListEl) {
                 approvedJobListEl.innerHTML = filteredJobs.length > 0 ? filteredJobs.map(job => `
                     <div class="bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 flex flex-col justify-between">
@@ -305,9 +277,7 @@
                     </div>
                 `).join('') : '<p class="text-center text-gray-500 col-span-full">No approved jobs found.</p>';
             }
-        };
-    
-        const renderUserPendingJobs = () => {
+            
             if (userPendingContainerEl) {
                 userPendingContainerEl.innerHTML = userPendingJobs.length > 0 ? `
                     <div class="container mx-auto px-4 mt-8">
@@ -345,9 +315,7 @@
                     </div>
                 ` : '';
             }
-        };
-    
-        const renderAdminModerationQueue = () => {
+        
             if (adminModerationContainerEl) {
                 adminModerationContainerEl.innerHTML = (user && user.uid === adminId) ? `
                     <div class="container mx-auto px-4 mt-8 pt-8 border-t-2 border-gray-300">
@@ -389,40 +357,65 @@
         };
 
         const attachEventListeners = () => {
-            userInfoEl = document.getElementById('user-info');
-            approvedJobListEl = document.getElementById('approved-job-list');
-            userPendingContainerEl = document.getElementById('user-pending-container');
-            adminModerationContainerEl = document.getElementById('admin-moderation-container');
             modalContainer = document.getElementById('modal-container');
             deleteModalContainer = document.getElementById('delete-modal-container');
             form = document.getElementById('job-form');
-            searchInput = document.getElementById('search-input');
-            addJobBtn = document.getElementById('add-job-btn');
 
+            const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
                     searchTerm = e.target.value;
-                    renderApprovedJobs();
+                    renderApp();
                 });
             }
+        
+            const addJobBtn = document.getElementById('add-job-btn');
             if (addJobBtn) {
                 addJobBtn.addEventListener('click', openAddModal);
             }
-            if (document.getElementById('cancel-btn')) {
-                document.getElementById('cancel-btn').addEventListener('click', closeModal);
+        
+            const cancelBtn = document.getElementById('cancel-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeModal);
             }
-            if (document.getElementById('cancel-delete-btn')) {
-                document.getElementById('cancel-delete-btn').addEventListener('click', closeModal);
+        
+            const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+            if (cancelDeleteBtn) {
+                cancelDeleteBtn.addEventListener('click', closeModal);
             }
+            
             if (document.getElementById('confirm-delete-btn')) {
                 document.getElementById('confirm-delete-btn').addEventListener('click', () => {
-                    if (jobToDeleteId) handleDeleteJob(jobToDeleteId);
+                    if (jobToDelete) handleDeleteJob(jobToDelete.id);
                 });
             }
+
             if (form) {
-                form.addEventListener('submit', handleFormSubmit);
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    if (form.dataset.id) {
+                        handleUpdateJob(form.dataset.id, {
+                            title: form.title.value,
+                            company: form.company.value,
+                            location: form.location.value,
+                            qualification: form.qualification.value,
+                            applyLink: form.applyLink.value,
+                            description: form.description.value,
+                        });
+                    } else {
+                        handleAddJob({
+                            title: form.title.value,
+                            company: form.company.value,
+                            location: form.location.value,
+                            qualification: form.qualification.value,
+                            applyLink: form.applyLink.value,
+                            description: form.description.value,
+                        });
+                    }
+                });
             }
 
+            // Using event delegation for dynamic buttons
             document.body.addEventListener('click', (e) => {
                 const target = e.target.closest('button, a');
                 if (!target) return;
@@ -430,193 +423,70 @@
                 const jobId = target.dataset.id;
                 
                 if (target.classList.contains('edit-btn')) {
-                    const jobToEdit = [...approvedJobs, ...userPendingJobs, ...pendingJobs].find(j => j.id === jobId);
-                    if (jobToEdit) openEditModal(jobToEdit);
-                } else if (target.classList.contains('delete-btn')) {
-                    const jobToDelete = [...approvedJobs, ...userPendingJobs, ...pendingJobs].find(j => j.id === jobId);
-                    if (jobToDelete) openDeleteConfirmation(jobToDelete);
-                } else if (target.classList.contains('approve-btn')) {
+                    const job = [...approvedJobs, ...userPendingJobs, ...pendingJobs].find(j => j.id === jobId);
+                    if (job) openEditModal(job);
+                }
+                if (target.classList.contains('delete-btn')) {
+                    const job = [...approvedJobs, ...userPendingJobs, ...pendingJobs].find(j => j.id === jobId);
+                    if (job) openDeleteConfirmation(job);
+                }
+                if (target.classList.contains('approve-btn')) {
                     handleApproveJob(jobId);
-                } else if (target.classList.contains('reject-btn')) {
+                }
+                if (target.classList.contains('reject-btn')) {
                     handleRejectJob(jobId);
                 }
             });
         };
 
-        const openAddModal = () => {
-            document.getElementById('modal-title').textContent = 'Add New Job';
-            document.getElementById('save-btn').textContent = 'Add Job';
-            form.reset();
-            form.removeAttribute('data-id');
-            modalContainer.classList.remove('hidden');
-        };
-    
-        const openEditModal = (job) => {
-            document.getElementById('modal-title').textContent = 'Edit Job';
-            document.getElementById('save-btn').textContent = 'Save Changes';
-            form.title.value = job.title;
-            form.company.value = job.company;
-            form.location.value = job.location;
-            form.qualification.value = job.qualification || '';
-            form.applyLink.value = job.applyLink || '';
-            form.description.value = job.description;
-            form.dataset.id = job.id;
-            modalContainer.classList.remove('hidden');
-        };
-    
-        const openDeleteConfirmation = (job) => {
-            document.getElementById('delete-modal-text').innerHTML = `Are you sure you want to delete the job titled <b>${job.title}</b>? This action cannot be undone.`;
-            jobToDeleteId = job.id;
-            deleteModalContainer.classList.remove('hidden');
+        // Static CRUD operations
+        const generateId = () => Math.random().toString(36).substring(2, 9);
+
+        const handleAddJob = (job) => {
+            const newJob = { id: generateId(), ...job, userId: user.uid, status: 'pending' };
+            pendingJobs.push(newJob);
+            closeModal();
+            renderApp();
         };
 
-        const closeModal = () => {
-            modalContainer.classList.add('hidden');
-            deleteModalContainer.classList.add('hidden');
-            jobToDeleteId = null;
+        const handleUpdateJob = (jobId, updatedJob) => {
+            approvedJobs = approvedJobs.map(job => (job.id === jobId ? { ...job, ...updatedJob } : job));
+            userPendingJobs = userPendingJobs.map(job => (job.id === jobId ? { ...job, ...updatedJob } : job));
+            pendingJobs = pendingJobs.map(job => (job.id === jobId ? { ...job, ...updatedJob } : job));
+            closeModal();
+            renderApp();
         };
 
-        const handleFormSubmit = async (e) => {
-            e.preventDefault();
-            const jobData = {
-                title: form.title.value,
-                company: form.company.value,
-                location: form.location.value,
-                qualification: form.qualification.value,
-                applyLink: form.applyLink.value,
-                description: form.description.value,
-            };
-            const jobId = form.dataset.id;
-            if (jobId) {
-                await handleUpdateJob(jobId, jobData);
-            } else {
-                await handleAddJob(jobData);
+        const handleDeleteJob = (jobId) => {
+            approvedJobs = approvedJobs.filter(job => job.id !== jobId);
+            userPendingJobs = userPendingJobs.filter(job => job.id !== jobId);
+            pendingJobs = pendingJobs.filter(job => job.id !== jobId);
+            closeModal();
+            renderApp();
+        };
+    
+        const handleApproveJob = (jobId) => {
+            const jobIndex = pendingJobs.findIndex(job => job.id === jobId);
+            if (jobIndex > -1) {
+                const jobToApprove = pendingJobs.splice(jobIndex, 1)[0];
+                jobToApprove.status = 'approved';
+                approvedJobs.push(jobToApprove);
+                renderApp();
             }
         };
 
-        // Firestore interaction logic
-        const handleAddJob = async (job) => {
-            if (!user) return console.error("User not authenticated.");
-            const jobsCollection = collection(db, `/artifacts/${appId}/public/data/jobs`);
-            const adminsCollection = collection(db, `/artifacts/${appId}/public/data/admins`);
-
-            try {
-                const adminsSnapshot = await getDocs(adminsCollection);
-                if (adminsSnapshot.empty) {
-                    await addDoc(adminsCollection, { userId: user.uid, createdAt: new Date() });
-                    adminId = user.uid;
-                }
-                
-                await addDoc(jobsCollection, {
-                    ...job,
-                    createdAt: new Date(),
-                    userId: user.uid,
-                    status: 'pending'
-                });
-                closeModal();
-            } catch (error) {
-                console.error("Error adding document: ", error);
-            }
+        const handleRejectJob = (jobId) => {
+            pendingJobs = pendingJobs.filter(job => job.id !== jobId);
+            renderApp();
         };
     
-        const handleUpdateJob = async (jobId, updatedJob) => {
-            if (!user) return console.error("User not authenticated.");
-            const docRef = doc(db, `/artifacts/${appId}/public/data/jobs`, jobId);
-            try {
-                await updateDoc(docRef, {
-                    ...updatedJob,
-                    updatedAt: new Date(),
-                });
-                closeModal();
-            } catch (error) {
-                console.error("Error updating document: ", error);
-            }
-        };
-    
-        const handleDeleteJob = async (jobId) => {
-            if (!user) return console.error("User not authenticated.");
-            const docRef = doc(db, `/artifacts/${appId}/public/data/jobs`, jobId);
-            try {
-                await deleteDoc(docRef);
-                closeModal();
-            } catch (error) {
-                console.error("Error deleting document: ", error);
-            }
-        };
-    
-        const handleApproveJob = async (jobId) => {
-            if (user?.uid !== adminId) return;
-            const docRef = doc(db, `/artifacts/${appId}/public/data/jobs`, jobId);
-            try {
-                await updateDoc(docRef, { status: 'approved' });
-            } catch (error) {
-                console.error("Error approving job:", error);
-            }
-        };
-    
-        const handleRejectJob = async (jobId) => {
-            if (user?.uid !== adminId) return;
-            const docRef = doc(db, `/artifacts/${appId}/public/data/jobs`, jobId);
-            try {
-                await deleteDoc(docRef);
-            } catch (error) {
-                console.error("Error rejecting job:", error);
-            }
-        };
-
-        // Firestore subscriptions
-        const setupListeners = (userId) => {
-            const jobsCollection = firebase.firestore.collection(db, `/artifacts/${appId}/public/data/jobs`);
-            const adminsCollection = firebase.firestore.collection(db, `/artifacts/${appId}/public/data/admins`);
-
-            firebase.firestore.onSnapshot(adminsCollection, (querySnapshot) => {
-                if (!querySnapshot.empty) {
-                    adminId = querySnapshot.docs[0].data().userId;
-                } else {
-                    adminId = null;
-                }
-                
-                const approvedQuery = firebase.firestore.query(jobsCollection, firebase.firestore.where('status', '==', 'approved'));
-                firebase.firestore.onSnapshot(approvedQuery, (querySnapshot) => {
-                    approvedJobs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    render();
-                });
-    
-                if (userId === adminId) {
-                    const pendingQuery = firebase.firestore.query(jobsCollection, firebase.firestore.where('status', '==', 'pending'));
-                    firebase.firestore.onSnapshot(pendingQuery, (querySnapshot) => {
-                        pendingJobs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        render();
-                    });
-                }
-    
-                if (userId && userId !== adminId) {
-                    const userPendingQuery = firebase.firestore.query(jobsCollection, firebase.firestore.where('userId', '==', userId), firebase.firestore.where('status', '==', 'pending'));
-                    firebase.firestore.onSnapshot(userPendingQuery, (querySnapshot) => {
-                        userPendingJobs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        render();
-                    });
-                }
-            });
-        };
-
-        // Main entry point
         window.onload = () => {
-            signIn().then(() => {
-                firebase.auth.onAuthStateChanged(auth, (currentUser) => {
-                    user = currentUser;
-                    if (user) {
-                        setupListeners(user.uid);
-                    } else {
-                        approvedJobs = [];
-                        pendingJobs = [];
-                        userPendingJobs = [];
-                        adminId = null;
-                        render();
-                    }
-                    attachEventListeners();
-                });
-            });
+            // Mock initial state for local testing
+            pendingJobs.push({ id: 'pending-1', title: 'Marketing Manager', company: 'Ad Agency', location: 'London, UK', qualification: 'Bachelor’s degree in Marketing', applyLink: 'https://www.adagency.com/careers', userId: 'mock-user-456' });
+            userPendingJobs.push({ id: 'pending-2', title: 'Web Developer', company: 'Local Dev Co.', location: 'Remote', qualification: 'Experience with JavaScript and Tailwind CSS', applyLink: 'https://www.localdevco.com/jobs', userId: 'mock-user-admin123' });
+            
+            renderApp();
+            attachEventListeners();
         };
     </script>
 </body>
